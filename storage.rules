@@ -1,25 +1,7 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Users can upload their own files
-    match /images/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Property images are readable by all, writable by property owners
-    match /properties/{propertyId}/{allPaths=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
-    }
-
-    // Avatars are readable by all, writable by the user
-    match /avatars/{userId}/{allPaths=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Test files for validation
-    match /test/{allPaths=**} {
+    match /{allPaths=**} {
       allow read, write: if request.auth != null;
     }
   }
