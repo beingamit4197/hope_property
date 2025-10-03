@@ -1,4 +1,10 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -21,60 +27,82 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     name: "",
     email: "",
     password: "",
+    phone: "",
+    role: "user" as "user" | "agent" | "admin",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (isSignUp && !formData.name.trim()) {
       newErrors.name = "Name is required";
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Please enter a valid email";
     }
-    
+
     if (!formData.password.trim()) {
       newErrors.password = "Password is required";
     } else if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
-    
+
+    if (
+      isSignUp &&
+      formData.phone &&
+      !/^\+?[\d\s\-\(\)]+$/.test(formData.phone)
+    ) {
+      newErrors.phone = "Please enter a valid phone number";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       if (isSignUp) {
-        await signup(formData.name, formData.email, formData.password);
+        await signup(
+          formData.name,
+          formData.email,
+          formData.password,
+          formData.phone || undefined,
+          formData.role
+        );
         toast.success("Account created successfully!", {
-          description: "Welcome to Hope Livings"
+          description: "Welcome to Hope Livings",
         });
       } else {
         await login(formData.email, formData.password);
         toast.success("Welcome back!", {
-          description: "You've successfully signed in"
+          description: "You've successfully signed in",
         });
       }
-      
+
       onClose();
-      setFormData({ name: "", email: "", password: "" });
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        phone: "",
+        role: "user",
+      });
       setErrors({});
     } catch (error) {
       toast.error("Authentication failed", {
-        description: "Please check your credentials and try again"
+        description: "Please check your credentials and try again",
       });
     } finally {
       setIsLoading(false);
@@ -82,9 +110,9 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
@@ -96,8 +124,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             {isSignUp ? "Create Account" : "Welcome Back"}
           </DialogTitle>
           <DialogDescription className="text-center text-muted-foreground">
-            {isSignUp 
-              ? "Start your journey to find your dream home" 
+            {isSignUp
+              ? "Start your journey to find your dream home"
               : "Sign in to continue to Hope Livings"}
           </DialogDescription>
         </DialogHeader>
@@ -105,11 +133,19 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         <div className="space-y-4 mt-4">
           {/* Social Login Buttons */}
           <div className="space-y-3">
-            <Button variant="outline" className="w-full rounded-xl hover:bg-muted transition-all duration-300" type="button">
+            <Button
+              variant="outline"
+              className="w-full rounded-xl hover:bg-muted transition-all duration-300"
+              type="button"
+            >
               <Chrome className="h-5 w-5 mr-2" />
               Continue with Google
             </Button>
-            <Button variant="outline" className="w-full rounded-xl hover:bg-muted transition-all duration-300" type="button">
+            <Button
+              variant="outline"
+              className="w-full rounded-xl hover:bg-muted transition-all duration-300"
+              type="button"
+            >
               <Facebook className="h-5 w-5 mr-2" />
               Continue with Facebook
             </Button>
@@ -127,13 +163,15 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             {isSignUp && (
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input 
-                  id="name" 
-                  type="text" 
-                  placeholder="Rajesh Kumar" 
-                  className={`rounded-xl bg-input-background ${errors.name ? 'border-destructive' : ''}`}
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Rajesh Kumar"
+                  className={`rounded-xl bg-input-background ${
+                    errors.name ? "border-destructive" : ""
+                  }`}
                   value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
                   disabled={isLoading}
                 />
                 {errors.name && (
@@ -145,17 +183,67 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               </div>
             )}
 
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number (Optional)</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="+91 98765 43210"
+                  className={`rounded-xl bg-input-background ${
+                    errors.phone ? "border-destructive" : ""
+                  }`}
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
+                  disabled={isLoading}
+                />
+                {errors.phone && (
+                  <p className="text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.phone}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="role">Account Type</Label>
+                <select
+                  id="role"
+                  className={`w-full px-3 py-2 rounded-xl bg-input-background border ${
+                    errors.role ? "border-destructive" : "border-input"
+                  }`}
+                  value={formData.role}
+                  onChange={(e) => handleInputChange("role", e.target.value)}
+                  disabled={isLoading}
+                >
+                  <option value="user">Regular User</option>
+                  <option value="agent">Real Estate Agent</option>
+                  <option value="admin">Administrator</option>
+                </select>
+                {errors.role && (
+                  <p className="text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.role}
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="you@example.com" 
-                  className={`pl-10 rounded-xl bg-input-background ${errors.email ? 'border-destructive' : ''}`}
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  className={`pl-10 rounded-xl bg-input-background ${
+                    errors.email ? "border-destructive" : ""
+                  }`}
                   value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
                   disabled={isLoading}
                 />
               </div>
@@ -171,13 +259,17 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="••••••••" 
-                  className={`pl-10 rounded-xl bg-input-background ${errors.password ? 'border-destructive' : ''}`}
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  className={`pl-10 rounded-xl bg-input-background ${
+                    errors.password ? "border-destructive" : ""
+                  }`}
                   value={formData.password}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("password", e.target.value)
+                  }
                   disabled={isLoading}
                 />
               </div>
@@ -201,8 +293,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               </div>
             )}
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
               disabled={isLoading}
             >
@@ -219,8 +311,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
           <div className="text-center text-sm text-muted-foreground">
             {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-            <button 
-              onClick={() => setIsSignUp(!isSignUp)} 
+            <button
+              onClick={() => setIsSignUp(!isSignUp)}
               className="text-primary hover:underline font-medium"
               type="button"
             >

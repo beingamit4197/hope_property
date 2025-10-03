@@ -1,13 +1,27 @@
 import { createContext, useContext, ReactNode } from "react";
-import { useAuth as useFirebaseAuth } from "../hooks/useAuth";
+import { useAuth as useFirebaseAuth, User } from "../hooks/useAuth";
 
 interface AuthContextType {
-  user: any;
+  user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
+  signup: (
+    name: string,
+    email: string,
+    password: string,
+    phone?: string,
+    role?: "user" | "agent" | "admin"
+  ) => Promise<void>;
   logout: () => Promise<void>;
-  updateProfile: (data: any) => Promise<void>;
+  updateProfile: (data: Partial<User>) => Promise<void>;
+  updateUserPreferences: (
+    preferences: Partial<User["preferences"]>
+  ) => Promise<void>;
+  verifyUser: (userId: string) => Promise<void>;
+  updateUserRole: (
+    userId: string,
+    role: "user" | "agent" | "admin"
+  ) => Promise<void>;
   loading: boolean;
   error: string | null;
   resetPassword: (email: string) => Promise<void>;
@@ -27,6 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup: firebaseAuth.signup,
         logout: firebaseAuth.logout,
         updateProfile: firebaseAuth.updateProfile,
+        updateUserPreferences: firebaseAuth.updateUserPreferences,
+        verifyUser: firebaseAuth.verifyUser,
+        updateUserRole: firebaseAuth.updateUserRole,
         loading: firebaseAuth.loading,
         error: firebaseAuth.error,
         resetPassword: firebaseAuth.resetPassword,

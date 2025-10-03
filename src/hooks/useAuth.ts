@@ -17,8 +17,18 @@ export interface User {
   email: string;
   phone?: string;
   avatar?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  role: "user" | "agent" | "admin";
+  isVerified: boolean;
+  preferences: {
+    propertyTypes: string[];
+    priceRange: {
+      min: number;
+      max: number;
+    };
+    locations: string[];
+  };
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export function useAuth() {
@@ -42,8 +52,15 @@ export function useAuth() {
                 email: firebaseUser.email || "",
                 phone: userData.phone || "",
                 avatar: userData.avatar || firebaseUser.photoURL || "",
-                createdAt: userData.createdAt?.toDate(),
-                updatedAt: userData.updatedAt?.toDate(),
+                role: userData.role || "user",
+                isVerified: userData.isVerified || false,
+                preferences: userData.preferences || {
+                  propertyTypes: [],
+                  priceRange: { min: 0, max: 1000000 },
+                  locations: [],
+                },
+                createdAt: userData.createdAt?.toDate() || new Date(),
+                updatedAt: userData.updatedAt?.toDate() || new Date(),
               });
             } else {
               // Create user document if it doesn't exist
@@ -52,6 +69,13 @@ export function useAuth() {
                 name: firebaseUser.displayName || "",
                 email: firebaseUser.email || "",
                 avatar: firebaseUser.photoURL || "",
+                role: "user",
+                isVerified: false,
+                preferences: {
+                  propertyTypes: [],
+                  priceRange: { min: 0, max: 1000000 },
+                  locations: [],
+                },
                 createdAt: new Date(),
                 updatedAt: new Date(),
               };
@@ -89,7 +113,13 @@ export function useAuth() {
     }
   };
 
-  const signup = async (name: string, email: string, password: string) => {
+  const signup = async (
+    name: string,
+    email: string,
+    password: string,
+    phone?: string,
+    role: "user" | "agent" | "admin" = "user"
+  ) => {
     try {
       setError(null);
       setLoading(true);
@@ -107,6 +137,14 @@ export function useAuth() {
         id: firebaseUser.uid,
         name,
         email,
+        phone: phone || "",
+        role,
+        isVerified: false,
+        preferences: {
+          propertyTypes: [],
+          priceRange: { min: 0, max: 1000000 },
+          locations: [],
+        },
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -173,6 +211,101 @@ export function useAuth() {
     }
   };
 
+  const updateUserPreferences = async (
+    preferences: Partial<User["preferences"]>
+  ) => {
+    if (!user) throw new Error("No user logged in");
+
+    try {
+      setError(null);
+      setLoading(true);
+
+      const updatedPreferences = {
+        ...user.preferences,
+        ...preferences,
+      };
+
+      // Update Firestore document
+      await setDoc(
+        doc(db, "users", user.id),
+        {
+          preferences: updatedPreferences,
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+
+      // Update local state
+      setUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              preferences: updatedPreferences,
+              updatedAt: new Date(),
+            }
+          : null
+      );
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyUser = async (userId: string) => {
+    if (!user || user.role !== "admin") {
+      throw new Error("Only admins can verify users");
+    }
+
+    try {
+      setError(null);
+      setLoading(true);
+
+      await setDoc(
+        doc(db, "users", userId),
+        {
+          isVerified: true,
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateUserRole = async (
+    userId: string,
+    role: "user" | "agent" | "admin"
+  ) => {
+    if (!user || user.role !== "admin") {
+      throw new Error("Only admins can update user roles");
+    }
+
+    try {
+      setError(null);
+      setLoading(true);
+
+      await setDoc(
+        doc(db, "users", userId),
+        {
+          role,
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     user,
     loading,
@@ -182,6 +315,9 @@ export function useAuth() {
     signup,
     logout,
     updateProfile,
+    updateUserPreferences,
     resetPassword,
+    verifyUser,
+    updateUserRole,
   };
 }

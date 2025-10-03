@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read/write their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Admins can read all users
+    match /users/{userId} {
+      allow read: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Properties are readable by all authenticated users, writable by owners
+    match /properties/{propertyId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        (resource == null || resource.data.ownerId == request.auth.uid);
+    }
+
+    // Saved properties are private to each user
+    match /savedProperties/{savedPropertyId} {
+      allow read, write: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // Property inquiries are readable by property owners and inquirers
+    match /propertyInquiries/{inquiryId} {
+      allow read: if request.auth != null &&
+        (resource.data.userId == request.auth.uid ||
+         resource.data.agentId == request.auth.uid);
+      allow create: if request.auth != null;
+      allow update: if request.auth != null &&
+        (resource.data.userId == request.auth.uid ||
+         resource.data.agentId == request.auth.uid);
+    }
+
+    // Agents collection
+    match /agents/{agentId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        (resource == null || resource.data.userId == request.auth.uid);
+    }
+
+    // Reviews collection
+    match /reviews/{reviewId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // Test collection for validation
+    match /test/{document} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
