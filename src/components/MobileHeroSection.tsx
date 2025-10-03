@@ -1,15 +1,22 @@
+import React from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { Search, MapPin, SlidersHorizontal } from "lucide-react";
 
 export function MobileHeroSection() {
   return (
-    <section className="md:hidden relative bg-gradient-to-br from-primary via-accent to-info text-white pt-4 pb-8 px-4">
+    <section className="md:hidden relative bg-primary text-white pt-4 pb-8 px-4">
       <div className="absolute inset-0 bg-primary/80 -z-10"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(152,193,217,0.3),transparent_50%)] -z-10"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(201,184,224,0.3),transparent_50%)] -z-10"></div>
-      
+
       <div className="relative">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -31,7 +38,7 @@ export function MobileHeroSection() {
               className="pl-10 text-foreground bg-input-background rounded-xl border-border h-11"
             />
           </div>
-          
+
           <div className="flex gap-2">
             <Select>
               <SelectTrigger className="text-foreground rounded-xl flex-1 h-11">
@@ -45,10 +52,7 @@ export function MobileHeroSection() {
               </SelectContent>
             </Select>
 
-            <Button 
-              variant="outline"
-              className="rounded-xl h-11 px-4"
-            >
+            <Button variant="outline" className="rounded-xl h-11 px-4">
               <SlidersHorizontal className="h-5 w-5" />
             </Button>
           </div>

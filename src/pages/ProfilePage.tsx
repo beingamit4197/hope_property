@@ -1,40 +1,69 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Heart, 
+import { LoginModal } from "../components/LoginModal";
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Heart,
   Home as HomeIcon,
   Settings,
   Bell,
   Shield,
   LogOut,
   Edit2,
-  Camera
+  Camera,
 } from "lucide-react";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import { Separator } from "../components/ui/separator";
 
 export function ProfilePage() {
-  const { user, isAuthenticated, logout, updateProfile } = useAuth();
+  const { user, isAuthenticated, logout, updateProfile, loading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
     phone: user?.phone || "",
   });
 
-  const handleSave = () => {
-    updateProfile(formData);
-    setIsEditing(false);
-    toast.success("Profile updated successfully!");
+  // Update form data when user changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+      });
+    }
+  }, [user]);
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      await updateProfile(formData);
+      setIsEditing(false);
+      toast.success("Profile updated successfully!");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error("Failed to update profile", {
+        description: "Please try again later",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!isAuthenticated) {
@@ -44,11 +73,16 @@ export function ProfilePage() {
           <div className="bg-muted rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
             <User className="h-12 w-12 text-muted-foreground" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground mb-3">Welcome to Hope Livings</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-3">
+            Welcome to Hope Livings
+          </h2>
           <p className="text-muted-foreground mb-6">
             Sign in to access your profile and manage your properties
           </p>
-          <Button className="rounded-full px-8">
+          <Button
+            className="rounded-full px-8"
+            onClick={() => setIsLoginOpen(true)}
+          >
             Sign In
           </Button>
         </div>
@@ -79,7 +113,9 @@ export function ProfilePage() {
 
               {/* User Info */}
               <div className="flex-1 md:pb-4">
-                <h1 className="text-2xl font-bold text-foreground mb-1">{user?.name}</h1>
+                <h1 className="text-2xl font-bold text-foreground mb-1">
+                  {user?.name}
+                </h1>
                 <p className="text-muted-foreground">{user?.email}</p>
               </div>
 
@@ -107,14 +143,23 @@ export function ProfilePage() {
                           phone: user?.phone || "",
                         });
                       }}
+                      disabled={isSaving || loading}
                     >
                       Cancel
                     </Button>
                     <Button
                       className="rounded-full"
                       onClick={handleSave}
+                      disabled={isSaving || loading}
                     >
-                      Save
+                      {isSaving ? (
+                        <>
+                          <span className="animate-spin mr-2">⏳</span>
+                          Saving...
+                        </>
+                      ) : (
+                        "Save"
+                      )}
                     </Button>
                   </div>
                 )}
@@ -161,7 +206,9 @@ export function ProfilePage() {
           <div className="md:col-span-2">
             <Card className="border-border rounded-2xl">
               <CardHeader>
-                <CardTitle className="text-foreground">Personal Information</CardTitle>
+                <CardTitle className="text-foreground">
+                  Personal Information
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {isEditing ? (
@@ -171,8 +218,11 @@ export function ProfilePage() {
                       <Input
                         id="name"
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
                         className="rounded-xl bg-input-background"
+                        disabled={isSaving || loading}
                       />
                     </div>
                     <div className="space-y-2">
@@ -181,8 +231,11 @@ export function ProfilePage() {
                         id="email"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                         className="rounded-xl bg-input-background"
+                        disabled={isSaving || loading}
                       />
                     </div>
                     <div className="space-y-2">
@@ -191,8 +244,11 @@ export function ProfilePage() {
                         id="phone"
                         type="tel"
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, phone: e.target.value })
+                        }
                         className="rounded-xl bg-input-background"
+                        disabled={isSaving || loading}
                       />
                     </div>
                   </>
@@ -203,8 +259,12 @@ export function ProfilePage() {
                         <User className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Full Name</p>
-                        <p className="font-medium text-foreground">{user?.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Full Name
+                        </p>
+                        <p className="font-medium text-foreground">
+                          {user?.name}
+                        </p>
                       </div>
                     </div>
                     <Separator />
@@ -214,7 +274,9 @@ export function ProfilePage() {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Email</p>
-                        <p className="font-medium text-foreground">{user?.email}</p>
+                        <p className="font-medium text-foreground">
+                          {user?.email}
+                        </p>
                       </div>
                     </div>
                     <Separator />
@@ -224,7 +286,9 @@ export function ProfilePage() {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Phone</p>
-                        <p className="font-medium text-foreground">{user?.phone || "Not provided"}</p>
+                        <p className="font-medium text-foreground">
+                          {user?.phone || "Not provided"}
+                        </p>
                       </div>
                     </div>
                   </>
@@ -237,15 +301,24 @@ export function ProfilePage() {
           <div className="space-y-4">
             <Card className="border-border rounded-2xl">
               <CardContent className="p-4 space-y-2">
-                <Button variant="ghost" className="w-full justify-start rounded-xl hover:bg-muted">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start rounded-xl hover:bg-muted"
+                >
                   <Bell className="h-5 w-5 mr-3" />
                   Notifications
                 </Button>
-                <Button variant="ghost" className="w-full justify-start rounded-xl hover:bg-muted">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start rounded-xl hover:bg-muted"
+                >
                   <Shield className="h-5 w-5 mr-3" />
                   Privacy & Security
                 </Button>
-                <Button variant="ghost" className="w-full justify-start rounded-xl hover:bg-muted">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start rounded-xl hover:bg-muted"
+                >
                   <Settings className="h-5 w-5 mr-3" />
                   Preferences
                 </Button>
@@ -266,6 +339,9 @@ export function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Login Modal */}
+      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
     </div>
   );
 }

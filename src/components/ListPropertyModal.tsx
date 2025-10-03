@@ -1,12 +1,36 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Upload, Home, IndianRupee, MapPin, Bed, Bath, Square, X, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { LocationPicker } from "./LocationPicker";
+import {
+  Upload,
+  Home,
+  IndianRupee,
+  MapPin,
+  Bed,
+  Bath,
+  Square,
+  X,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 import { useState, useRef } from "react";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 interface ListPropertyModalProps {
   isOpen: boolean;
@@ -17,6 +41,8 @@ interface PropertyFormData {
   title: string;
   type: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   price: string;
   beds: string;
   baths: string;
@@ -32,13 +58,17 @@ interface PropertyFormData {
 export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof PropertyFormData, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof PropertyFormData, string>>
+  >({});
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [formData, setFormData] = useState<PropertyFormData>({
     title: "",
     type: "",
     location: "",
+    latitude: undefined,
+    longitude: undefined,
     price: "",
     beds: "",
     baths: "",
@@ -48,76 +78,97 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
     phone: "",
     email: "",
     notes: "",
-    images: []
+    images: [],
   });
 
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const handleInputChange = (field: keyof PropertyFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  const handleLocationSelect = (
+    coordinates: { lat: number; lng: number },
+    address: string
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      location: address,
+      latitude: coordinates.lat,
+      longitude: coordinates.lng,
+    }));
+    // Clear location error when location is selected
+    if (errors.location) {
+      setErrors((prev) => ({ ...prev, location: "" }));
     }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
+
     if (files.length + formData.images.length > 10) {
       toast.error("Maximum 10 images allowed");
       return;
     }
 
     // Validate file sizes (max 10MB each)
-    const invalidFiles = files.filter(file => file.size > 10 * 1024 * 1024);
+    const invalidFiles = files.filter((file) => file.size > 10 * 1024 * 1024);
     if (invalidFiles.length > 0) {
       toast.error("Some files are too large. Maximum size is 10MB per image.");
       return;
     }
 
     // Create previews
-    const newPreviews = files.map(file => URL.createObjectURL(file));
-    
-    setFormData(prev => ({
+    const newPreviews = files.map((file) => URL.createObjectURL(file));
+
+    setFormData((prev) => ({
       ...prev,
-      images: [...prev.images, ...files]
+      images: [...prev.images, ...files],
     }));
-    
-    setImagePreviews(prev => [...prev, ...newPreviews]);
-    
+
+    setImagePreviews((prev) => [...prev, ...newPreviews]);
+
     toast.success(`${files.length} image(s) added successfully`);
   };
 
   const removeImage = (index: number) => {
     // Revoke the object URL to free memory
     URL.revokeObjectURL(imagePreviews[index]);
-    
-    setFormData(prev => ({
+
+    setFormData((prev) => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      images: prev.images.filter((_, i) => i !== index),
     }));
-    
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
-    
+
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+
     toast.success("Image removed");
   };
 
   const validateStep1 = () => {
     const newErrors: Partial<Record<keyof PropertyFormData, string>> = {};
-    
+
     if (!formData.title.trim()) newErrors.title = "Property title is required";
     if (!formData.type) newErrors.type = "Property type is required";
     if (!formData.location.trim()) newErrors.location = "Location is required";
+    if (!formData.latitude || !formData.longitude) {
+      newErrors.location = "Please select a location on the map";
+    }
     if (!formData.price.trim()) newErrors.price = "Price is required";
     else if (isNaN(Number(formData.price)) || Number(formData.price) <= 0) {
       newErrors.price = "Please enter a valid price";
     }
-    if (!formData.beds.trim()) newErrors.beds = "Number of bedrooms is required";
+    if (!formData.beds.trim())
+      newErrors.beds = "Number of bedrooms is required";
     else if (isNaN(Number(formData.beds)) || Number(formData.beds) < 0) {
       newErrors.beds = "Please enter a valid number";
     }
-    if (!formData.baths.trim()) newErrors.baths = "Number of bathrooms is required";
+    if (!formData.baths.trim())
+      newErrors.baths = "Number of bathrooms is required";
     else if (isNaN(Number(formData.baths)) || Number(formData.baths) < 0) {
       newErrors.baths = "Please enter a valid number";
     }
@@ -125,21 +176,26 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
     else if (isNaN(Number(formData.sqft)) || Number(formData.sqft) <= 0) {
       newErrors.sqft = "Please enter a valid square footage";
     }
-    if (!formData.description.trim()) newErrors.description = "Description is required";
+    if (!formData.description.trim())
+      newErrors.description = "Description is required";
     else if (formData.description.length < 50) {
       newErrors.description = "Description should be at least 50 characters";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const validateStep2 = () => {
     const newErrors: Partial<Record<keyof PropertyFormData, string>> = {};
-    
-    if (!formData.contactName.trim()) newErrors.contactName = "Your name is required";
+
+    if (!formData.contactName.trim())
+      newErrors.contactName = "Your name is required";
     if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
-    else if (!/^[\+]?[9][1][\s]?[6-9]\d{4}\s?\d{5}$/.test(formData.phone) && !/^[6-9]\d{9}$/.test(formData.phone.replace(/\D/g, ''))) {
+    else if (
+      !/^[\+]?[9][1][\s]?[6-9]\d{4}\s?\d{5}$/.test(formData.phone) &&
+      !/^[6-9]\d{9}$/.test(formData.phone.replace(/\D/g, ""))
+    ) {
       newErrors.phone = "Please enter a valid Indian phone number";
     }
     if (!formData.email.trim()) newErrors.email = "Email is required";
@@ -150,7 +206,7 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
       toast.error("Please upload at least one image of your property");
       return false;
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -170,36 +226,37 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateStep2()) {
       toast.error("Please fill in all required fields correctly");
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Here you would normally send the data to your backend
       console.log("Form submitted:", {
         ...formData,
-        imageCount: formData.images.length
+        imageCount: formData.images.length,
       });
-      
+
       toast.success("Property listed successfully!", {
-        description: "Our team will review your listing and get back to you within 24 hours.",
+        description:
+          "Our team will review your listing and get back to you within 24 hours.",
         duration: 5000,
       });
-      
+
       // Reset form and close modal
       resetForm();
       onClose();
-      
     } catch (error) {
       toast.error("Failed to submit property", {
-        description: "Please try again or contact support if the problem persists."
+        description:
+          "Please try again or contact support if the problem persists.",
       });
     } finally {
       setIsSubmitting(false);
@@ -220,7 +277,7 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
       phone: "",
       email: "",
       notes: "",
-      images: []
+      images: [],
     });
     setImagePreviews([]);
     setErrors({});
@@ -228,10 +285,15 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
   };
 
   const handleClose = () => {
-    if (step > 1 || Object.values(formData).some(val => 
-      typeof val === 'string' ? val.trim() : val.length > 0
-    )) {
-      if (confirm("Are you sure you want to close? Your progress will be lost.")) {
+    if (
+      step > 1 ||
+      Object.values(formData).some((val) =>
+        typeof val === "string" ? val.trim() : val.length > 0
+      )
+    ) {
+      if (
+        confirm("Are you sure you want to close? Your progress will be lost.")
+      ) {
         resetForm();
         onClose();
       }
@@ -244,9 +306,12 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl text-foreground">List Your Property</DialogTitle>
+          <DialogTitle className="text-2xl text-foreground">
+            List Your Property
+          </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Step {step} of 2: {step === 1 ? "Property Details" : "Contact & Images"}
+            Step {step} of 2:{" "}
+            {step === 1 ? "Property Details" : "Contact & Images"}
           </DialogDescription>
         </DialogHeader>
 
@@ -254,8 +319,16 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
           {/* Progress Bar */}
           <div className="mb-6">
             <div className="flex gap-2">
-              <div className={`h-2 flex-1 rounded-full transition-all duration-300 ${step >= 1 ? 'bg-primary' : 'bg-muted'}`}></div>
-              <div className={`h-2 flex-1 rounded-full transition-all duration-300 ${step >= 2 ? 'bg-primary' : 'bg-muted'}`}></div>
+              <div
+                className={`h-2 flex-1 rounded-full transition-all duration-300 ${
+                  step >= 1 ? "bg-primary" : "bg-muted"
+                }`}
+              ></div>
+              <div
+                className={`h-2 flex-1 rounded-full transition-all duration-300 ${
+                  step >= 2 ? "bg-primary" : "bg-muted"
+                }`}
+              ></div>
             </div>
           </div>
 
@@ -264,15 +337,21 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
               <div className="space-y-4">
                 {/* Property Title */}
                 <div className="space-y-2">
-                  <Label htmlFor="title">Property Title <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="title">
+                    Property Title <span className="text-destructive">*</span>
+                  </Label>
                   <div className="relative">
                     <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
-                    <Input 
-                      id="title" 
-                      placeholder="e.g., Modern Downtown Apartment" 
-                      className={`pl-10 rounded-xl bg-input-background ${errors.title ? 'border-destructive' : ''}`}
+                    <Input
+                      id="title"
+                      placeholder="e.g., Modern Downtown Apartment"
+                      className={`pl-10 rounded-xl bg-input-background ${
+                        errors.title ? "border-destructive" : ""
+                      }`}
                       value={formData.title}
-                      onChange={(e) => handleInputChange('title', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("title", e.target.value)
+                      }
                     />
                   </div>
                   {errors.title && (
@@ -285,9 +364,18 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
 
                 {/* Property Type */}
                 <div className="space-y-2">
-                  <Label htmlFor="type">Property Type <span className="text-destructive">*</span></Label>
-                  <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
-                    <SelectTrigger className={`rounded-xl ${errors.type ? 'border-destructive' : ''}`}>
+                  <Label htmlFor="type">
+                    Property Type <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={formData.type}
+                    onValueChange={(value) => handleInputChange("type", value)}
+                  >
+                    <SelectTrigger
+                      className={`rounded-xl ${
+                        errors.type ? "border-destructive" : ""
+                      }`}
+                    >
                       <SelectValue placeholder="Select property type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -308,40 +396,43 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
 
                 {/* Location */}
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location <span className="text-destructive">*</span></Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
-                    <Input 
-                      id="location" 
-                      placeholder="e.g., Bandra West, Mumbai" 
-                      className={`pl-10 rounded-xl bg-input-background ${errors.location ? 'border-destructive' : ''}`}
-                      value={formData.location}
-                      onChange={(e) => handleInputChange('location', e.target.value)}
-                    />
-                  </div>
-                  {errors.location && (
-                    <p className="text-sm text-destructive flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.location}
-                    </p>
-                  )}
+                  <LocationPicker
+                    onLocationSelect={handleLocationSelect}
+                    initialLocation={formData.location}
+                    initialCoordinates={
+                      formData.latitude && formData.longitude
+                        ? { lat: formData.latitude, lng: formData.longitude }
+                        : undefined
+                    }
+                    error={errors.location}
+                  />
                 </div>
 
                 {/* Price */}
                 <div className="space-y-2">
-                  <Label htmlFor="price">Price (in ₹) <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="price">
+                    Price (in ₹) <span className="text-destructive">*</span>
+                  </Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground font-semibold">₹</span>
-                    <Input 
-                      id="price" 
-                      type="number" 
-                      placeholder="35000000" 
-                      className={`pl-8 rounded-xl bg-input-background ${errors.price ? 'border-destructive' : ''}`}
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground font-semibold">
+                      ₹
+                    </span>
+                    <Input
+                      id="price"
+                      type="number"
+                      placeholder="35000000"
+                      className={`pl-8 rounded-xl bg-input-background ${
+                        errors.price ? "border-destructive" : ""
+                      }`}
                       value={formData.price}
-                      onChange={(e) => handleInputChange('price', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("price", e.target.value)
+                      }
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">Enter amount in rupees (e.g., 35000000 for ₹3.5 Cr)</p>
+                  <p className="text-xs text-muted-foreground">
+                    Enter amount in rupees (e.g., 35000000 for ₹3.5 Cr)
+                  </p>
                   {errors.price && (
                     <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
@@ -353,16 +444,22 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
                 {/* Beds, Baths, Sqft */}
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="beds">Bedrooms <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="beds">
+                      Bedrooms <span className="text-destructive">*</span>
+                    </Label>
                     <div className="relative">
                       <Bed className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                      <Input 
-                        id="beds" 
-                        type="number" 
-                        placeholder="2" 
-                        className={`pl-9 rounded-xl bg-input-background ${errors.beds ? 'border-destructive' : ''}`}
+                      <Input
+                        id="beds"
+                        type="number"
+                        placeholder="2"
+                        className={`pl-9 rounded-xl bg-input-background ${
+                          errors.beds ? "border-destructive" : ""
+                        }`}
                         value={formData.beds}
-                        onChange={(e) => handleInputChange('beds', e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("beds", e.target.value)
+                        }
                       />
                     </div>
                     {errors.beds && (
@@ -370,16 +467,22 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="baths">Bathrooms <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="baths">
+                      Bathrooms <span className="text-destructive">*</span>
+                    </Label>
                     <div className="relative">
                       <Bath className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                      <Input 
-                        id="baths" 
-                        type="number" 
-                        placeholder="2" 
-                        className={`pl-9 rounded-xl bg-input-background ${errors.baths ? 'border-destructive' : ''}`}
+                      <Input
+                        id="baths"
+                        type="number"
+                        placeholder="2"
+                        className={`pl-9 rounded-xl bg-input-background ${
+                          errors.baths ? "border-destructive" : ""
+                        }`}
                         value={formData.baths}
-                        onChange={(e) => handleInputChange('baths', e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("baths", e.target.value)
+                        }
                       />
                     </div>
                     {errors.baths && (
@@ -387,16 +490,22 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="sqft">Sq Ft <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="sqft">
+                      Sq Ft <span className="text-destructive">*</span>
+                    </Label>
                     <div className="relative">
                       <Square className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                      <Input 
-                        id="sqft" 
-                        type="number" 
-                        placeholder="1200" 
-                        className={`pl-9 rounded-xl bg-input-background ${errors.sqft ? 'border-destructive' : ''}`}
+                      <Input
+                        id="sqft"
+                        type="number"
+                        placeholder="1200"
+                        className={`pl-9 rounded-xl bg-input-background ${
+                          errors.sqft ? "border-destructive" : ""
+                        }`}
                         value={formData.sqft}
-                        onChange={(e) => handleInputChange('sqft', e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("sqft", e.target.value)
+                        }
                       />
                     </div>
                     {errors.sqft && (
@@ -413,12 +522,16 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
                       ({formData.description.length}/50 min)
                     </span>
                   </Label>
-                  <Textarea 
-                    id="description" 
-                    placeholder="Describe your property, its features, and what makes it special..." 
-                    className={`min-h-32 rounded-xl bg-input-background ${errors.description ? 'border-destructive' : ''}`}
+                  <Textarea
+                    id="description"
+                    placeholder="Describe your property, its features, and what makes it special..."
+                    className={`min-h-32 rounded-xl bg-input-background ${
+                      errors.description ? "border-destructive" : ""
+                    }`}
                     value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("description", e.target.value)
+                    }
                   />
                   {errors.description && (
                     <p className="text-sm text-destructive flex items-center gap-1">
@@ -434,47 +547,71 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
               <div className="space-y-4">
                 {/* Contact Information */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-foreground">Contact Information</h3>
-                  
+                  <h3 className="font-semibold text-foreground">
+                    Contact Information
+                  </h3>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="contactName">Your Name <span className="text-destructive">*</span></Label>
-                      <Input 
-                        id="contactName" 
-                        placeholder="John Doe" 
-                        className={`rounded-xl bg-input-background ${errors.contactName ? 'border-destructive' : ''}`}
+                      <Label htmlFor="contactName">
+                        Your Name <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="contactName"
+                        placeholder="John Doe"
+                        className={`rounded-xl bg-input-background ${
+                          errors.contactName ? "border-destructive" : ""
+                        }`}
                         value={formData.contactName}
-                        onChange={(e) => handleInputChange('contactName', e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("contactName", e.target.value)
+                        }
                       />
                       {errors.contactName && (
-                        <p className="text-xs text-destructive">{errors.contactName}</p>
+                        <p className="text-xs text-destructive">
+                          {errors.contactName}
+                        </p>
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number <span className="text-destructive">*</span></Label>
-                      <Input 
-                        id="phone" 
-                        type="tel" 
-                        placeholder="+91 98765 43210" 
-                        className={`rounded-xl bg-input-background ${errors.phone ? 'border-destructive' : ''}`}
+                      <Label htmlFor="phone">
+                        Phone Number <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="+91 98765 43210"
+                        className={`rounded-xl bg-input-background ${
+                          errors.phone ? "border-destructive" : ""
+                        }`}
                         value={formData.phone}
-                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("phone", e.target.value)
+                        }
                       />
                       {errors.phone && (
-                        <p className="text-xs text-destructive">{errors.phone}</p>
+                        <p className="text-xs text-destructive">
+                          {errors.phone}
+                        </p>
                       )}
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address <span className="text-destructive">*</span></Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="you@example.com" 
-                      className={`rounded-xl bg-input-background ${errors.email ? 'border-destructive' : ''}`}
+                    <Label htmlFor="email">
+                      Email Address <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      className={`rounded-xl bg-input-background ${
+                        errors.email ? "border-destructive" : ""
+                      }`}
                       value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
                     />
                     {errors.email && (
                       <p className="text-xs text-destructive">{errors.email}</p>
@@ -490,7 +627,7 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
                       ({formData.images.length}/10)
                     </span>
                   </Label>
-                  <div 
+                  <div
                     className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary transition-colors duration-300 cursor-pointer bg-muted/30"
                     onClick={() => fileInputRef.current?.click()}
                   >
@@ -501,25 +638,25 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
                     <p className="text-xs text-muted-foreground">
                       PNG, JPG up to 10MB (Max 10 images)
                     </p>
-                    <input 
+                    <input
                       ref={fileInputRef}
-                      id="images" 
-                      type="file" 
-                      multiple 
-                      accept="image/*" 
+                      id="images"
+                      type="file"
+                      multiple
+                      accept="image/*"
                       className="hidden"
                       onChange={handleImageChange}
                     />
                   </div>
-                  
+
                   {/* Image Previews */}
                   {imagePreviews.length > 0 && (
                     <div className="grid grid-cols-3 gap-3 mt-4">
                       {imagePreviews.map((preview, index) => (
                         <div key={index} className="relative group">
-                          <img 
-                            src={preview} 
-                            alt={`Preview ${index + 1}`} 
+                          <img
+                            src={preview}
+                            alt={`Preview ${index + 1}`}
                             className="w-full h-24 object-cover rounded-lg border border-border"
                           />
                           <button
@@ -538,12 +675,12 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
                 {/* Additional Notes */}
                 <div className="space-y-2">
                   <Label htmlFor="notes">Additional Notes (Optional)</Label>
-                  <Textarea 
-                    id="notes" 
-                    placeholder="Any special instructions or notes for our team..." 
+                  <Textarea
+                    id="notes"
+                    placeholder="Any special instructions or notes for our team..."
                     className="min-h-24 rounded-xl bg-input-background"
                     value={formData.notes}
-                    onChange={(e) => handleInputChange('notes', e.target.value)}
+                    onChange={(e) => handleInputChange("notes", e.target.value)}
                   />
                 </div>
               </div>
@@ -552,9 +689,9 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
             {/* Action Buttons */}
             <div className="flex gap-3 pt-4">
               {step > 1 && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={handleBack}
                   className="flex-1 rounded-xl"
                   disabled={isSubmitting}
@@ -563,16 +700,16 @@ export function ListPropertyModal({ isOpen, onClose }: ListPropertyModalProps) {
                 </Button>
               )}
               {step < 2 ? (
-                <Button 
-                  type="button" 
+                <Button
+                  type="button"
                   onClick={handleNext}
                   className="flex-1 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
                 >
                   Next Step
                 </Button>
               ) : (
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="flex-1 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
                   disabled={isSubmitting}
                 >

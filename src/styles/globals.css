@@ -8,7 +8,7 @@
   --card-foreground: #2C2C2C;
   --popover: #ffffff;
   --popover-foreground: #2C2C2C;
-  --primary: #9DC183;
+  --primary: #74975b;
   --primary-foreground: #ffffff;
   --secondary: #E8EDE6;
   --secondary-foreground: #2C2C2C;
@@ -251,11 +251,12 @@ html {
 
 /* Mobile optimizations */
 @media (max-width: 768px) {
+
   /* Hide scrollbar for horizontal scroll */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -274,7 +275,9 @@ html {
 
 /* Touch optimization for mobile */
 @media (hover: none) and (pointer: coarse) {
-  button, a {
+
+  button,
+  a {
     -webkit-tap-highlight-color: transparent;
   }
 }

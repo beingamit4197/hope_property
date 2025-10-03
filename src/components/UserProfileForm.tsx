@@ -13,7 +13,7 @@ import { Separator } from "./ui/separator";
 import { Badge } from "./ui/badge";
 import { useAuth } from "../contexts/AuthContext";
 import { User } from "../hooks/useAuth";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import {
   User as UserIcon,
   Mail,

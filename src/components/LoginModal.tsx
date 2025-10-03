@@ -10,9 +10,9 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
 import { Mail, Lock, Facebook, Chrome, AlertCircle } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -30,10 +30,10 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     phone: "",
     role: "user" as "user" | "agent" | "admin",
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState({} as { [key: string]: string });
 
   const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+    const newErrors: { [key: string]: string } = {};
 
     if (isSignUp && !formData.name.trim()) {
       newErrors.name = "Name is required";
@@ -63,7 +63,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
 
     if (!validateForm()) {
