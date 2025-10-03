@@ -33,7 +33,15 @@ export const MAPBOX_CONFIG = {
 
 // Helper function to get Mapbox token
 export function getMapboxToken(): string {
-  // Check for environment variable first (for production)
+  // Check for Vite environment variable first (for production)
+  if (
+    typeof window !== "undefined" &&
+    import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
+  ) {
+    return import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+  }
+
+  // Check for window environment variable (for production)
   if (
     typeof window !== "undefined" &&
     (window as any).env?.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN

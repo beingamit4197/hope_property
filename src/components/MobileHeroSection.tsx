@@ -8,9 +8,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Search, MapPin, SlidersHorizontal } from "lucide-react";
+import { Search, MapPin, SlidersHorizontal, X } from "lucide-react";
+import { useLocationAutocomplete } from "../hooks/useLocationAutocomplete";
 
 export function MobileHeroSection() {
+  const {
+    searchQuery,
+    suggestions,
+    showSuggestions,
+    isLoading,
+    selectedLocation,
+    suggestionsRef,
+    handleSearchInput,
+    handleSuggestionSelect,
+    clearSearch,
+    setShowSuggestions,
+  } = useLocationAutocomplete({
+    onLocationSelect: (coordinates, address) => {
+      console.log("Location selected:", { coordinates, address });
+      // You can add additional logic here, like updating a global state or triggering a search
+    },
+  });
+
   return (
     <section className="md:hidden relative bg-primary text-white pt-4 pb-8 px-4">
       <div className="absolute inset-0 bg-primary/80 -z-10"></div>
@@ -35,11 +54,58 @@ export function MobileHeroSection() {
             <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
             <Input
               placeholder="Search location..."
-              className="pl-10 text-foreground bg-input-background rounded-xl border-border h-11"
+              className="pl-10 pr-10 text-foreground bg-input-background rounded-xl border-border h-11"
+              value={searchQuery}
+              onChange={(e) => handleSearchInput(e.target.value)}
+              onFocus={() => {
+                if (suggestions.length > 0) {
+                  setShowSuggestions(true);
+                }
+              }}
+              autoComplete="off"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+
+            {/* Autocomplete Suggestions */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div
+                ref={suggestionsRef}
+                className="absolute w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                style={{ zIndex: 99999 }}
+              >
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleSuggestionSelect(suggestion)}
+                    className="w-full px-4 py-3 text-left hover:bg-muted focus:bg-muted focus:outline-none border-b border-border last:border-b-0"
+                  >
+                    <div className="flex items-start gap-3">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {suggestion.text}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {suggestion.place_name}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 relative" style={{ zIndex: 1 }}>
             <Select>
               <SelectTrigger className="text-foreground rounded-xl flex-1 h-11">
                 <SelectValue placeholder="Type" />
@@ -59,7 +125,7 @@ export function MobileHeroSection() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 relative" style={{ zIndex: 1 }}>
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 text-center">
             <p className="text-2xl font-bold mb-1">50+</p>
             <p className="text-xs text-white/80">Properties</p>

@@ -38,7 +38,11 @@ export function PropertiesMap({
 
     // Get and validate Mapbox token
     const mapboxToken = getMapboxToken();
+    console.log("Mapbox token:", mapboxToken ? "Present" : "Missing");
+    console.log("Token valid:", isValidMapboxToken(mapboxToken));
+
     if (!isValidMapboxToken(mapboxToken)) {
+      console.error("Invalid Mapbox token:", mapboxToken);
       setMapError(true);
       return;
     }
@@ -66,7 +70,13 @@ export function PropertiesMap({
     );
 
     map.current.on("load", () => {
+      console.log("Map loaded successfully");
       setMapLoaded(true);
+    });
+
+    map.current.on("error", (e) => {
+      console.error("Map error:", e);
+      setMapError(true);
     });
 
     return () => {
