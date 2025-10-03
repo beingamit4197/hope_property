@@ -3,9 +3,11 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Card } from "./ui/card";
 import { MapPin } from "lucide-react";
-
-// Note: Replace with your actual Mapbox token
-const MAPBOX_TOKEN = "pk.eyJ1IjoiZXhhbXBsZSIsImEiOiJjbGV4YW1wbGUifQ.example";
+import {
+  getMapboxToken,
+  isValidMapboxToken,
+  MAPBOX_CONFIG,
+} from "../lib/mapbox";
 
 interface Property {
   id: number;
@@ -21,7 +23,10 @@ interface PropertiesMapProps {
   onMarkerClick?: (property: Property) => void;
 }
 
-export function PropertiesMap({ properties, onMarkerClick }: PropertiesMapProps) {
+export function PropertiesMap({
+  properties,
+  onMarkerClick,
+}: PropertiesMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<mapboxgl.Marker[]>([]);
@@ -31,20 +36,21 @@ export function PropertiesMap({ properties, onMarkerClick }: PropertiesMapProps)
   useEffect(() => {
     if (!mapContainer.current) return;
 
-    // Check if token is configured
-    if (!MAPBOX_TOKEN || MAPBOX_TOKEN.includes("example")) {
+    // Get and validate Mapbox token
+    const mapboxToken = getMapboxToken();
+    if (!isValidMapboxToken(mapboxToken)) {
       setMapError(true);
       return;
     }
 
     // Initialize map
-    mapboxgl.accessToken = MAPBOX_TOKEN;
+    mapboxgl.accessToken = mapboxToken;
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: "mapbox://styles/mapbox/streets-v12",
-      center: [-98.5795, 39.8283], // Center of US as default
-      zoom: 3,
+      style: MAPBOX_CONFIG.DEFAULT_STYLE,
+      center: MAPBOX_CONFIG.DEFAULT_CENTER,
+      zoom: MAPBOX_CONFIG.DEFAULT_ZOOM,
       attributionControl: false,
     });
 
@@ -67,7 +73,7 @@ export function PropertiesMap({ properties, onMarkerClick }: PropertiesMapProps)
       // Clean up markers
       markers.current.forEach((marker) => marker.remove());
       markers.current = [];
-      
+
       // Clean up map
       if (map.current) {
         map.current.remove();
@@ -91,7 +97,8 @@ export function PropertiesMap({ properties, onMarkerClick }: PropertiesMapProps)
       // Create custom marker element
       const el = document.createElement("div");
       el.className = "custom-marker";
-      el.style.backgroundImage = "url(https://docs.mapbox.com/mapbox-gl-js/assets/custom_marker.png)";
+      el.style.backgroundImage =
+        "url(https://docs.mapbox.com/mapbox-gl-js/assets/custom_marker.png)";
       el.style.width = "32px";
       el.style.height = "40px";
       el.style.backgroundSize = "100%";
@@ -100,11 +107,11 @@ export function PropertiesMap({ properties, onMarkerClick }: PropertiesMapProps)
       // Alternative: Use a colored dot marker
       const markerEl = document.createElement("div");
       markerEl.className = "property-marker";
-      markerEl.style.width = "30px";
-      markerEl.style.height = "30px";
+      markerEl.style.width = `${MAPBOX_CONFIG.MARKER.SIZE}px`;
+      markerEl.style.height = `${MAPBOX_CONFIG.MARKER.SIZE}px`;
       markerEl.style.borderRadius = "50%";
-      markerEl.style.backgroundColor = "#9DC183";
-      markerEl.style.border = "3px solid white";
+      markerEl.style.backgroundColor = MAPBOX_CONFIG.MARKER.COLOR;
+      markerEl.style.border = `${MAPBOX_CONFIG.MARKER.BORDER_WIDTH}px solid ${MAPBOX_CONFIG.MARKER.BORDER_COLOR}`;
       markerEl.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
       markerEl.style.cursor = "pointer";
       markerEl.style.transition = "all 0.3s ease";
@@ -112,12 +119,12 @@ export function PropertiesMap({ properties, onMarkerClick }: PropertiesMapProps)
       // Add hover effect
       markerEl.addEventListener("mouseenter", () => {
         markerEl.style.transform = "scale(1.2)";
-        markerEl.style.backgroundColor = "#8AB172";
+        markerEl.style.backgroundColor = MAPBOX_CONFIG.MARKER.HOVER_COLOR;
       });
 
       markerEl.addEventListener("mouseleave", () => {
         markerEl.style.transform = "scale(1)";
-        markerEl.style.backgroundColor = "#9DC183";
+        markerEl.style.backgroundColor = MAPBOX_CONFIG.MARKER.COLOR;
       });
 
       // Create popup content with INR formatting
@@ -171,7 +178,7 @@ export function PropertiesMap({ properties, onMarkerClick }: PropertiesMapProps)
     if (properties.length > 0) {
       map.current.fitBounds(bounds, {
         padding: { top: 50, bottom: 50, left: 50, right: 50 },
-        maxZoom: 12,
+        maxZoom: MAPBOX_CONFIG.MAX_ZOOM,
         duration: 1000,
       });
     }
@@ -185,9 +192,12 @@ export function PropertiesMap({ properties, onMarkerClick }: PropertiesMapProps)
             <MapPin className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h3 className="font-semibold text-foreground">Property Locations</h3>
+            <h3 className="font-semibold text-foreground">
+              Property Locations
+            </h3>
             <p className="text-sm text-muted-foreground">
-              {properties.length} {properties.length === 1 ? "property" : "properties"} on map
+              {properties.length}{" "}
+              {properties.length === 1 ? "property" : "properties"} on map
             </p>
           </div>
         </div>
@@ -203,9 +213,12 @@ export function PropertiesMap({ properties, onMarkerClick }: PropertiesMapProps)
             <div className="bg-warning/20 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
               <MapPin className="h-8 w-8 text-warning" />
             </div>
-            <h3 className="font-semibold text-foreground mb-2">Mapbox Token Required</h3>
+            <h3 className="font-semibold text-foreground mb-2">
+              Mapbox Token Required
+            </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              To display the interactive map, please configure your Mapbox access token.
+              To display the interactive map, please configure your Mapbox
+              access token.
             </p>
             <a
               href="/MAPBOX_SETUP.md"
@@ -214,8 +227,18 @@ export function PropertiesMap({ properties, onMarkerClick }: PropertiesMapProps)
               className="text-sm text-primary hover:underline inline-flex items-center gap-1"
             >
               View Setup Instructions
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
               </svg>
             </a>
           </div>
